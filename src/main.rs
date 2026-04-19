@@ -1,41 +1,10 @@
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use zmq::{Context, Socket};
-
-// Structs for JSON messages
-#[derive(Serialize, Deserialize, Clone)]
-struct RegisterMessage {
-    action: String,
-    publisher_id: String,
-    topics: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct PingMessage {
-    action: String,
-    publisher_id: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct PongMessage {
-    action: String,
-    publisher_id: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct TopicListRequest {
-    action: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct TopicListResponse {
-    action: String,
-    topics: Vec<String>,
-}
+use zmq_broker::{PingMessage, PongMessage, RegisterMessage, TopicListResponse};
 
 // Struct to store publisher information
 #[derive(Clone)]
