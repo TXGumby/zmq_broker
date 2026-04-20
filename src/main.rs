@@ -50,14 +50,6 @@ impl Broker {
         );
     }
 
-    fn handle_pong(&self, msg: PongMessage) {
-        let mut publishers = self.publishers.write();
-        if let Some(info) = publishers.get_mut(&msg.publisher_id) {
-            info.last_pong = Instant::now();
-            println!("Received pong from publisher: {}", msg.publisher_id);
-        }
-    }
-
     fn handle_topic_list_request(&self) -> TopicListResponse {
         let publishers = self.publishers.read();
         let mut topics = Vec::new();

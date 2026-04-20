@@ -4,7 +4,10 @@ use zmq_broker::TopicListResponse;
 
 fn get_topics(req_socket: &zmq::Socket) -> Vec<String> {
     let request = serde_json::json!({ "action": "get_topics" });
-    req_socket.send(request.to_string().as_bytes(), 0).unwrap();
+    if let Err(e) = req_socket.send(request.to_string().as_bytes(), 0) {
+        eprintln!("Topic request send error: {}", e);
+        return vec![];
+    }
     match req_socket.recv_msg(0) {
         Ok(msg) => {
             if let Ok(json_str) = std::str::from_utf8(&msg) {
@@ -58,9 +61,13 @@ fn main() {
             // Subscribe to any new topics
             for topic in &matched {
                 if !subscribed.contains(topic) {
-                    sub_socket.set_subscribe(topic.as_bytes()).unwrap();
-                    println!("Subscribed to: {}", topic);
-                    subscribed.push(topic.clone());
+                    match sub_socket.set_subscribe(topic.as_bytes()) {
+                        Ok(()) => {
+                            println!("Subscribed to: {}", topic);
+                            subscribed.push(topic.clone());
+                        }
+                        Err(e) => eprintln!("Subscribe error for {}: {}", topic, e),
+                    }
                 }
             }
 
@@ -73,14 +80,16 @@ fn main() {
 
         // Receive messages with a short timeout so we can refresh topics periodically
         match sub_socket.poll(zmq::POLLIN, 500) {
-            Ok(n) if n > 0 => {
-                let frames = sub_socket.recv_multipart(0).unwrap();
-                if frames.len() == 2 {
-                    let topic = String::from_utf8_lossy(&frames[0]);
-                    let data = String::from_utf8_lossy(&frames[1]);
-                    println!("Received [{}]: {}", topic, data);
+            Ok(n) if n > 0 => match sub_socket.recv_multipart(0) {
+                Ok(frames) => {
+                    if frames.len() == 2 {
+                        let topic = String::from_utf8_lossy(&frames[0]);
+                        let data = String::from_utf8_lossy(&frames[1]);
+                        println!("Received [{}]: {}", topic, data);
+                    }
                 }
-            }
+                Err(e) => eprintln!("Recv error: {}", e),
+            },
             _ => {}
         }
     }

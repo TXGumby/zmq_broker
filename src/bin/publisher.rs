@@ -50,9 +50,18 @@ fn main() {
                                 action: "pong".to_string(),
                                 publisher_id: id_clone.clone(),
                             };
-                            let pong_json = serde_json::to_string(&pong).unwrap();
-                            ping_socket.send(pong_json.as_bytes(), 0).unwrap();
-                            println!("Sent pong");
+                            match serde_json::to_string(&pong) {
+                                Ok(pong_json) => {
+                                    if let Err(e) =
+                                        ping_socket.send(pong_json.as_bytes(), 0)
+                                    {
+                                        eprintln!("Pong send error: {}", e);
+                                    } else {
+                                        println!("Sent pong");
+                                    }
+                                }
+                                Err(e) => eprintln!("Pong serialize error: {}", e),
+                            }
                         }
                     }
                 }
@@ -67,8 +76,14 @@ fn main() {
         for topic in &topics {
             let topic_str = format!("{}:{}", id, topic);
             let data = serde_json::json!({ "message": format!("Message {} for {}", counter, topic) });
-            pub_socket.send(topic_str.as_bytes(), zmq::SNDMORE).unwrap();
-            pub_socket.send(data.to_string().as_bytes(), 0).unwrap();
+            if let Err(e) = pub_socket.send(topic_str.as_bytes(), zmq::SNDMORE) {
+                eprintln!("Publish topic send error: {}", e);
+                continue;
+            }
+            if let Err(e) = pub_socket.send(data.to_string().as_bytes(), 0) {
+                eprintln!("Publish data send error: {}", e);
+                continue;
+            }
             println!("Published [{}]: {}", topic_str, data);
         }
         counter += 1;

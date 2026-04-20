@@ -1,8 +1,10 @@
-import zmq
+import sys
 import time
 import json
 import uuid
 import threading
+import zmq
+
 
 class Publisher:
     def __init__(self, topics):
@@ -21,7 +23,7 @@ class Publisher:
         register_msg = {
             "action": "register",
             "publisher_id": self.id,
-            "topics": self.topics
+            "topics": self.topics,
         }
         self.pub_socket.send_json(register_msg)
         print(f"Registered with broker. Publisher ID: {self.id}")
@@ -44,10 +46,7 @@ class Publisher:
                 frames = self.ping_socket.recv_multipart(flags=zmq.NOBLOCK)
                 data = json.loads(frames[-1])
                 if data["action"] == "ping" and data["publisher_id"] == self.id:
-                    pong_msg = {
-                        "action": "pong",
-                        "publisher_id": self.id
-                    }
+                    pong_msg = {"action": "pong", "publisher_id": self.id}
                     self.ping_socket.send_json(pong_msg)
                     print("Sent pong response")
             except zmq.Again:
@@ -59,7 +58,14 @@ class Publisher:
         threading.Thread(target=self.handle_pings, daemon=True).start()
         self.publish()
 
+
+def main():
+    topics = sys.argv[1:]
+    if not topics:
+        print("Usage: python pub1.py <topic1> [topic2] ...", file=sys.stderr)
+        sys.exit(1)
+    Publisher(topics).run()
+
+
 if __name__ == "__main__":
-    topics = ["news", "weather"]
-    publisher = Publisher(topics)
-    publisher.run()
+    main()

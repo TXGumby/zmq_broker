@@ -36,19 +36,27 @@ async fn main() {
             sub.connect("tcp://localhost:5555").unwrap();
             sub.set_subscribe(b"").unwrap();
             loop {
-                if let Ok(frames) = sub.recv_multipart(0) {
-                    if frames.len() == 2 {
-                        let topic = String::from_utf8_lossy(&frames[0]).to_string();
-                        let data_str = String::from_utf8_lossy(&frames[1]).to_string();
-                        let data = serde_json::from_str::<serde_json::Value>(&data_str)
-                            .unwrap_or(serde_json::Value::String(data_str));
-                        let out = serde_json::json!({
-                            "type": "message",
-                            "topic": topic,
-                            "data": data,
-                        });
-                        let _ = msg_tx.send(out.to_string());
+                match sub.recv_multipart(0) {
+                    Ok(frames) => {
+                        if frames.len() == 2 {
+                            let topic = String::from_utf8_lossy(&frames[0]).to_string();
+                            let data_str = String::from_utf8_lossy(&frames[1]).to_string();
+                            let data = serde_json::from_str::<serde_json::Value>(&data_str)
+                                .unwrap_or(serde_json::Value::String(data_str));
+                            let out = serde_json::json!({
+                                "type": "message",
+                                "topic": topic,
+                                "data": data,
+                            });
+                            let _ = msg_tx.send(out.to_string());
+                        } else {
+                            eprintln!(
+                                "Unexpected frame count on SUB: got {} frames",
+                                frames.len()
+                            );
+                        }
                     }
+                    Err(e) => eprintln!("SUB recv error: {}", e),
                 }
             }
         });
@@ -72,7 +80,9 @@ async fn main() {
             match cmd {
                 ZmqCommand::GetTopics { reply } => {
                     let request = serde_json::json!({ "action": "get_topics" });
-                    let _ = req.send(request.to_string().as_bytes(), 0);
+                    if let Err(e) = req.send(request.to_string().as_bytes(), 0) {
+                        eprintln!("Topic request send error: {}", e);
+                    }
                     let topics = match req.recv_msg(0) {
                         Ok(msg) => {
                             if let Ok(s) = std::str::from_utf8(&msg) {
@@ -91,9 +101,14 @@ async fn main() {
                     let _ = reply.send(out.to_string());
                 }
                 ZmqCommand::Publish { topic, message } => {
-                    let _ = pub_sock.send(topic.as_bytes(), zmq::SNDMORE);
+                    if let Err(e) = pub_sock.send(topic.as_bytes(), zmq::SNDMORE) {
+                        eprintln!("Publish topic send error: {}", e);
+                        continue;
+                    }
                     let data = serde_json::json!({ "message": message });
-                    let _ = pub_sock.send(data.to_string().as_bytes(), 0);
+                    if let Err(e) = pub_sock.send(data.to_string().as_bytes(), 0) {
+                        eprintln!("Publish data send error: {}", e);
+                    }
                 }
             }
         }
