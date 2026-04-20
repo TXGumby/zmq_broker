@@ -13,8 +13,8 @@ class Publisher:
         self.topics = topics
 
         self.pub_socket.connect("tcp://localhost:5556")
-        self.ping_socket.connect("tcp://localhost:5558")
         self.ping_socket.setsockopt_string(zmq.IDENTITY, self.id)
+        self.ping_socket.connect("tcp://localhost:5558")
 
     def register(self):
         time.sleep(0.5)  # allow connection to establish before sending
@@ -41,8 +41,9 @@ class Publisher:
     def handle_pings(self):
         while True:
             try:
-                message = self.ping_socket.recv_json(flags=zmq.NOBLOCK)
-                if message["action"] == "ping" and message["publisher_id"] == self.id:
+                frames = self.ping_socket.recv_multipart(flags=zmq.NOBLOCK)
+                data = json.loads(frames[-1])
+                if data["action"] == "ping" and data["publisher_id"] == self.id:
                     pong_msg = {
                         "action": "pong",
                         "publisher_id": self.id

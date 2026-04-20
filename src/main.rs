@@ -93,9 +93,10 @@ impl Broker {
 
                 if rc.is_ok() && items[0].is_readable() {
                     if let Ok(msg) = ping_socket.recv_multipart(0) {
-                        if msg.len() == 3 {
-                            if let Ok(pong_msg) = serde_json::from_slice::<PongMessage>(&msg[2]) {
+                        if msg.len() == 2 {
+                            if let Ok(pong_msg) = serde_json::from_slice::<PongMessage>(&msg[1]) {
                                 if pong_msg.action == "pong" {
+                                    println!("Received pong from: {}", &pong_msg.publisher_id[..8]);
                                     let mut publishers = publishers.write();
                                     if let Some(info) = publishers.get_mut(&pong_msg.publisher_id) {
                                         info.last_pong = Instant::now();
@@ -114,7 +115,7 @@ impl Broker {
                             publisher_id: id.clone(),
                         };
                         let ping_json = serde_json::to_string(&ping_msg).unwrap();
-                        let _ = ping_socket.send_multipart(&[id.as_bytes(), b"", ping_json.as_bytes()], 0);
+                        let _ = ping_socket.send_multipart(&[id.as_bytes(), ping_json.as_bytes()], 0);
                     }
                     last_ping = Instant::now();
                 }
@@ -146,7 +147,7 @@ impl Broker {
                 if msg_vec.len() > 0 && (msg_vec[0] == 1 || msg_vec[0] == 0) {
                     let topic = String::from_utf8_lossy(&msg_vec[1..]).to_string();
                     println!("Subscription change: {}", topic);
-                    self.xsub_socket.send(&msg_vec, 0)?;
+                    let _ = self.xsub_socket.send(&msg_vec, 0);
                 }
             }
 
@@ -164,24 +165,25 @@ impl Broker {
                             }
                         }
                     }
-                    self.xpub_socket.send(&frames[0], 0)?;
+                    let _ = self.xpub_socket.send(&frames[0], 0);
                 } else {
                     // multipart: topic frame + data frame(s), forward as-is
                     let last = frames.len() - 1;
                     for (i, frame) in frames.iter().enumerate() {
                         let flags = if i < last { zmq::SNDMORE } else { 0 };
-                        self.xpub_socket.send(frame.as_slice(), flags)?;
+                        let _ = self.xpub_socket.send(frame.as_slice(), flags);
                     }
                 }
             }
 
             // REP readable: topic list requests from subscribers
             if items[2].is_readable() {
-                let _req = self.rep_socket.recv_msg(zmq::DONTWAIT)?;
-                let response = self.handle_topic_list_request();
-                let response_json = serde_json::to_string(&response).unwrap();
-                println!("Sending topic list: {:?}", response.topics);
-                self.rep_socket.send(response_json.as_bytes(), 0)?;
+                if let Ok(_req) = self.rep_socket.recv_msg(zmq::DONTWAIT) {
+                    let response = self.handle_topic_list_request();
+                    let response_json = serde_json::to_string(&response).unwrap();
+                    println!("Sending topic list: {:?}", response.topics);
+                    let _ = self.rep_socket.send(response_json.as_bytes(), 0);
+                }
             }
 
             self.remove_inactive_publishers();

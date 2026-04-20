@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZMQ Broker Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', monospace;
+    background: #0d1117;
+    color: #c9d1d9;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  header h1 { font-size: 18px; color: #58a6ff; }
+
+  #status {
+    margin-left: auto;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #f85149;
+  }
+
+  #status-dot.connected { background: #3fb950; }
+
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Left sidebar */
+  .sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: #161b22;
+    border-right: 1px solid #30363d;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel {
+    border-bottom: 1px solid #30363d;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8b949e;
+    background: #161b22;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-body {
+    padding: 10px 14px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .publisher-entry {
+    margin-bottom: 12px;
+  }
+
+  .publisher-id {
+    font-size: 11px;
+    color: #58a6ff;
+    font-family: monospace;
+    margin-bottom: 4px;
+  }
+
+  .publisher-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .topic-badge {
+    font-size: 11px;
+    background: #1f6feb33;
+    border: 1px solid #1f6feb66;
+    color: #79c0ff;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  .topic-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+
+  .topic-item input[type=checkbox] { accent-color: #58a6ff; cursor: pointer; }
+  .topic-item label { cursor: pointer; font-family: monospace; font-size: 12px; }
+
+  .btn-small {
+    font-size: 11px;
+    background: none;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-small:hover { border-color: #58a6ff; color: #58a6ff; }
+
+  /* Main content */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Publish form */
+  .publish-bar {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .publish-bar select, .publish-bar input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .publish-bar select { width: 220px; }
+  .publish-bar input { flex: 1; }
+
+  .publish-bar select:focus, .publish-bar input:focus {
+    border-color: #58a6ff;
+  }
+
+  .btn-publish {
+    background: #1f6feb;
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-publish:hover { background: #388bfd; }
+  .btn-publish:disabled { background: #21262d; color: #8b949e; cursor: default; }
+
+  /* Message feed */
+  .feed-header {
+    padding: 10px 16px;
+    font-size: 12px;
+    color: #8b949e;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    font-family: monospace;
+    font-size: 13px;
+  }
+
+  .msg-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 4px 16px;
+    border-bottom: 1px solid #21262d;
+  }
+
+  .msg-row:hover { background: #161b22; }
+
+  .msg-time { color: #6e7681; font-size: 11px; min-width: 80px; }
+
+  .msg-topic {
+    color: #79c0ff;
+    font-size: 11px;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .msg-data { color: #3fb950; flex: 1; }
+
+  .empty-state {
+    text-align: center;
+    color: #6e7681;
+    padding: 40px;
+    font-size: 14px;
+  }
+
+  #msg-count { color: #58a6ff; font-size: 12px; }
+
+  .btn-clear {
+    font-size: 11px;
+    background: none;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 2px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-clear:hover { border-color: #f85149; color: #f85149; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ZMQ Broker Dashboard</h1>
+  <div id="status">
+    <div id="status-dot"></div>
+    <span id="status-text">Disconnected</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+
+    <!-- Publishers panel -->
+    <div class="panel" style="max-height: 240px;">
+      <div class="panel-header">
+        Publishers
+        <button class="btn-small" onclick="refreshTopics()">Refresh</button>
+      </div>
+      <div class="panel-body" id="publishers-list">
+        <div class="empty-state" style="padding: 16px; font-size: 12px;">No publishers</div>
+      </div>
+    </div>
+
+    <!-- Topics panel -->
+    <div class="panel" style="flex: 1;">
+      <div class="panel-header">
+        Topics
+        <div style="display:flex; gap:4px;">
+          <button class="btn-small" onclick="selectAll(true)">All</button>
+          <button class="btn-small" onclick="selectAll(false)">None</button>
+        </div>
+      </div>
+      <div class="panel-body" id="topics-list">
+        <div class="empty-state" style="padding: 16px; font-size: 12px;">No topics</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+
+    <!-- Publish bar -->
+    <div class="publish-bar">
+      <select id="publish-topic">
+        <option value="">-- select topic --</option>
+      </select>
+      <input id="publish-msg" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter') publish()">
+      <button class="btn-publish" onclick="publish()">Publish</button>
+    </div>
+
+    <!-- Feed header -->
+    <div class="feed-header">
+      <span>Live Messages &nbsp;<span id="msg-count">0</span></span>
+      <button class="btn-clear" onclick="clearFeed()">Clear</button>
+    </div>
+
+    <!-- Message feed -->
+    <div id="feed">
+      <div class="empty-state" id="feed-empty">Waiting for messages...</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let ws = null;
+  let topics = [];
+  let subscribedTopics = new Set();
+  let topicsLoaded = false;
+  let msgCount = 0;
+  const MAX_MESSAGES = 200;
+
+  function connect() {
+    ws = new WebSocket(`ws://${location.host}/ws`);
+
+    ws.onopen = () => {
+      setStatus(true);
+      refreshTopics();
+      setInterval(refreshTopics, 10000);
+    };
+
+    ws.onclose = () => {
+      setStatus(false);
+      setTimeout(connect, 2000);
+    };
+
+    ws.onerror = () => ws.close();
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'topics') {
+        updateTopics(msg.topics || []);
+      } else if (msg.type === 'message') {
+        if (!topicsLoaded || subscribedTopics.has(msg.topic)) {
+          addMessage(msg);
+        }
+      }
+    };
+  }
+
+  function setStatus(connected) {
+    document.getElementById('status-dot').className = connected ? 'connected' : '';
+    document.getElementById('status-text').textContent = connected ? 'Connected' : 'Disconnected';
+  }
+
+  function refreshTopics() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ action: 'get_topics' }));
+    }
+  }
+
+  function updateTopics(newTopics) {
+    // Auto-subscribe any new topics that weren't in the previous list
+    for (const t of newTopics) {
+      if (!topics.includes(t)) subscribedTopics.add(t);
+    }
+    topics = newTopics;
+    topicsLoaded = true;
+
+    // Update publishers panel
+    const pubMap = {};
+    for (const t of topics) {
+      const [uuid, name] = t.split(':');
+      if (!pubMap[uuid]) pubMap[uuid] = [];
+      pubMap[uuid].push(name);
+    }
+
+    const pubList = document.getElementById('publishers-list');
+    if (Object.keys(pubMap).length === 0) {
+      pubList.innerHTML = '<div class="empty-state" style="padding:16px;font-size:12px;">No publishers</div>';
+    } else {
+      pubList.innerHTML = Object.entries(pubMap).map(([uuid, names]) => `
+        <div class="publisher-entry">
+          <div class="publisher-id">${uuid.substring(0, 8)}…</div>
+          <div class="publisher-topics">
+            ${names.map(n => `<span class="topic-badge">${n}</span>`).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Update topics panel (preserve existing subscriptions)
+    const topicsList = document.getElementById('topics-list');
+    if (topics.length === 0) {
+      topicsList.innerHTML = '<div class="empty-state" style="padding:16px;font-size:12px;">No topics</div>';
+    } else {
+      topicsList.innerHTML = topics.map(t => `
+        <div class="topic-item">
+          <input type="checkbox" id="cb-${t}" value="${t}"
+            ${subscribedTopics.has(t) ? 'checked' : ''}
+            onchange="onTopicToggle(this)">
+          <label for="cb-${t}">${t.split(':')[1]} <span style="color:#6e7681;font-size:10px;">(${t.split(':')[0].substring(0,8)}…)</span></label>
+        </div>
+      `).join('');
+      // Sync subscribedTopics with checkboxes
+      syncSubscriptions();
+    }
+
+    // Update publish topic dropdown
+    const sel = document.getElementById('publish-topic');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">-- select topic --</option>' +
+      topics.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${t.split(':')[1]} (${t.split(':')[0].substring(0,8)}…)</option>`).join('');
+  }
+
+  function onTopicToggle(cb) {
+    syncSubscriptions();
+  }
+
+  function syncSubscriptions() {
+    subscribedTopics.clear();
+    document.querySelectorAll('#topics-list input[type=checkbox]').forEach(cb => {
+      if (cb.checked) subscribedTopics.add(cb.value);
+    });
+  }
+
+  function selectAll(checked) {
+    document.querySelectorAll('#topics-list input[type=checkbox]').forEach(cb => {
+      cb.checked = checked;
+    });
+    syncSubscriptions();
+  }
+
+  function addMessage(msg) {
+    const feed = document.getElementById('feed');
+    const empty = document.getElementById('feed-empty');
+    if (empty) empty.remove();
+
+    const now = new Date();
+    const time = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+    const topicName = msg.topic.split(':')[1];
+    const dataStr = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
+
+    const row = document.createElement('div');
+    row.className = 'msg-row';
+    row.innerHTML = `
+      <span class="msg-time">${time}</span>
+      <span class="msg-topic" title="${msg.topic}">${topicName}</span>
+      <span class="msg-data">${dataStr}</span>
+    `;
+    feed.appendChild(row);
+
+    // Limit messages
+    const rows = feed.querySelectorAll('.msg-row');
+    if (rows.length > MAX_MESSAGES) rows[0].remove();
+
+    // Auto-scroll
+    feed.scrollTop = feed.scrollHeight;
+
+    msgCount++;
+    document.getElementById('msg-count').textContent = msgCount;
+  }
+
+  function publish() {
+    const topic = document.getElementById('publish-topic').value;
+    const message = document.getElementById('publish-msg').value.trim();
+    if (!topic || !message || !ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ action: 'publish', topic, message }));
+    document.getElementById('publish-msg').value = '';
+  }
+
+  function clearFeed() {
+    const feed = document.getElementById('feed');
+    feed.innerHTML = '<div class="empty-state" id="feed-empty">Waiting for messages...</div>';
+    msgCount = 0;
+    document.getElementById('msg-count').textContent = '0';
+  }
+
+  connect();
+</script>
+</body>
+</html>
