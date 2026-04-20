@@ -5,96 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZMQ Broker Dashboard</title>
 <style>
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #111118;
+    --surface2:  #1a1a26;
+    --surface3:  #22223a;
+    --border:    #2a2a3e;
+    --border2:   #3a3a52;
+    --text:      #e2e4f0;
+    --text2:     #8b8fa8;
+    --text3:     #55576a;
+    --accent:    #7c6af7;
+    --accent2:   #9d8fff;
+    --blue:      #3b8eea;
+    --green:     #34d399;
+    --red:       #f87171;
+    --yellow:    #fbbf24;
+    --radius:    8px;
+    --radius-sm: 4px;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
   body {
-    font-family: 'Segoe UI', monospace;
-    background: #0d1117;
-    color: #c9d1d9;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
     height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
+  /* ── Header ── */
   header {
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
-    padding: 12px 20px;
+    background: linear-gradient(135deg, #12121c 0%, #1a1530 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    flex-shrink: 0;
   }
 
-  header h1 { font-size: 18px; color: #58a6ff; }
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--blue));
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 0 12px #7c6af740;
+  }
+
+  .header-logo h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .header-logo h1 span { color: var(--accent2); }
+
+  .header-stats {
+    display: flex;
+    gap: 6px;
+    margin-left: 8px;
+  }
+
+  .stat-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .stat-pill .val { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat-pill .unit { color: var(--text3); font-size: 10px; }
 
   #status {
     margin-left: auto;
-    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .status-indicator {
     display: flex;
     align-items: center;
     gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px 4px 8px;
   }
 
   #status-dot {
-    width: 10px; height: 10px;
+    width: 8px; height: 8px;
     border-radius: 50%;
-    background: #f85149;
+    background: var(--red);
+    flex-shrink: 0;
   }
 
-  #status-dot.connected { background: #3fb950; }
+  #status-dot.connected {
+    background: var(--green);
+    box-shadow: 0 0 6px #34d39988;
+    animation: pulse 2s infinite;
+  }
 
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 6px #34d39988; }
+    50% { box-shadow: 0 0 12px #34d399cc; }
+  }
+
+  /* ── Layout ── */
   .layout {
     display: flex;
     flex: 1;
     overflow: hidden;
   }
 
-  /* Left sidebar */
+  /* ── Sidebar ── */
   .sidebar {
-    width: 280px;
-    min-width: 280px;
-    background: #161b22;
-    border-right: 1px solid #30363d;
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
   .panel {
-    border-bottom: 1px solid #30363d;
-    overflow: hidden;
+    border-bottom: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .panel-header {
     padding: 10px 14px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #8b949e;
-    background: #161b22;
+    letter-spacing: 0.08em;
+    color: var(--text3);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
   }
 
   .panel-body {
-    padding: 10px 14px;
+    padding: 8px;
     overflow-y: auto;
     flex: 1;
   }
 
-  .publisher-entry {
-    margin-bottom: 12px;
+  /* Publisher cards */
+  .publisher-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    transition: border-color 0.15s;
+  }
+
+  .publisher-card:hover { border-color: var(--border2); }
+
+  .publisher-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 7px;
+  }
+
+  .publisher-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 5px #34d39966;
+    flex-shrink: 0;
   }
 
   .publisher-id {
     font-size: 11px;
-    color: #58a6ff;
-    font-family: monospace;
-    margin-bottom: 4px;
+    color: var(--text2);
+    font-family: 'Cascadia Code', 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
   }
 
   .publisher-topics {
@@ -104,247 +221,448 @@
   }
 
   .topic-badge {
-    font-size: 11px;
-    background: #1f6feb33;
-    border: 1px solid #1f6feb66;
-    color: #79c0ff;
-    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
     border-radius: 10px;
+    letter-spacing: 0.02em;
   }
 
+  /* Topic list */
   .topic-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-    font-size: 13px;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
   }
 
-  .topic-item input[type=checkbox] { accent-color: #58a6ff; cursor: pointer; }
-  .topic-item label { cursor: pointer; font-family: monospace; font-size: 12px; }
+  .topic-item:hover { background: var(--surface2); }
 
-  .btn-small {
-    font-size: 11px;
-    background: none;
-    border: 1px solid #30363d;
-    color: #8b949e;
-    padding: 2px 8px;
-    border-radius: 4px;
+  .toggle {
+    position: relative;
+    width: 30px; height: 17px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--surface3);
+    border-radius: 17px;
+    border: 1px solid var(--border2);
+    transition: background 0.2s, border-color 0.2s;
     cursor: pointer;
   }
-  .btn-small:hover { border-color: #58a6ff; color: #58a6ff; }
 
-  /* Main content */
+  .toggle input:checked + .toggle-track {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--text3);
+    top: 2px; left: 2px;
+    transition: transform 0.2s, background 0.2s;
+  }
+
+  .toggle input:checked + .toggle-track::after {
+    transform: translateX(13px);
+    background: #fff;
+  }
+
+  .topic-label {
+    font-size: 12px;
+    font-weight: 500;
+    flex: 1;
+    user-select: none;
+  }
+
+  .topic-label-sub {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: 'Cascadia Code', 'JetBrains Mono', monospace;
+  }
+
+  /* Buttons */
+  .btn-xs {
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 3px 9px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-xs:hover { border-color: var(--accent); color: var(--accent2); background: #7c6af710; }
+
+  /* ── Main area ── */
   .main {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--bg);
   }
 
-  /* Publish form */
+  /* Publish bar */
   .publish-bar {
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
-    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-shrink: 0;
   }
 
-  .publish-bar select, .publish-bar input {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    color: #c9d1d9;
+  .publish-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+
+  .publish-bar select, .publish-bar input[type=text] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
     padding: 6px 10px;
-    border-radius: 6px;
+    border-radius: var(--radius);
     font-size: 13px;
     outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
 
-  .publish-bar select { width: 220px; }
-  .publish-bar input { flex: 1; }
+  .publish-bar select { width: 200px; color: var(--text2); }
+  .publish-bar input[type=text] { flex: 1; }
 
   .publish-bar select:focus, .publish-bar input:focus {
-    border-color: #58a6ff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px #7c6af720;
   }
 
   .btn-publish {
-    background: #1f6feb;
+    background: linear-gradient(135deg, var(--accent), #5a4fd6);
     color: #fff;
     border: none;
-    padding: 6px 16px;
-    border-radius: 6px;
+    padding: 7px 18px;
+    border-radius: var(--radius);
     font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    transition: opacity 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px #7c6af730;
   }
-  .btn-publish:hover { background: #388bfd; }
-  .btn-publish:disabled { background: #21262d; color: #8b949e; cursor: default; }
+  .btn-publish:hover { opacity: 0.9; box-shadow: 0 4px 16px #7c6af750; }
+  .btn-publish:active { opacity: 0.8; }
+  .btn-publish:disabled { background: var(--surface3); color: var(--text3); box-shadow: none; cursor: default; }
 
-  /* Message feed */
+  /* Feed header */
   .feed-header {
-    padding: 10px 16px;
-    font-size: 12px;
-    color: #8b949e;
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
+    padding: 8px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
+    flex-shrink: 0;
   }
 
+  .feed-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+  }
+
+  #msg-count {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .feed-actions { margin-left: auto; display: flex; gap: 6px; }
+
+  .btn-pause {
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .btn-pause:hover { border-color: var(--yellow); color: var(--yellow); }
+  .btn-pause.paused { border-color: var(--yellow); color: var(--yellow); background: #fbbf2415; }
+
+  .btn-clear {
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-clear:hover { border-color: var(--red); color: var(--red); background: #f8717115; }
+
+  /* Feed */
   #feed {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 0;
-    font-family: monospace;
-    font-size: 13px;
+    font-family: 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 12.5px;
   }
 
   .msg-row {
     display: flex;
     align-items: baseline;
-    gap: 10px;
-    padding: 4px 16px;
-    border-bottom: 1px solid #21262d;
+    gap: 12px;
+    padding: 5px 16px 5px 12px;
+    border-bottom: 1px solid #1a1a26;
+    border-left: 3px solid transparent;
+    transition: background 0.1s;
   }
 
-  .msg-row:hover { background: #161b22; }
+  .msg-row:hover { background: var(--surface); }
 
-  .msg-time { color: #6e7681; font-size: 11px; min-width: 80px; }
+  .msg-time {
+    color: var(--text3);
+    font-size: 11px;
+    min-width: 84px;
+    flex-shrink: 0;
+  }
 
   .msg-topic {
-    color: #79c0ff;
     font-size: 11px;
-    max-width: 240px;
+    font-weight: 700;
+    min-width: 70px;
+    max-width: 110px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  .msg-data { color: #3fb950; flex: 1; }
+  .msg-data { color: var(--text2); flex: 1; }
+  .msg-data .key { color: var(--text3); }
+  .msg-data .str { color: var(--green); }
+  .msg-data .num { color: var(--blue); }
 
   .empty-state {
-    text-align: center;
-    color: #6e7681;
-    padding: 40px;
-    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text3);
+    font-size: 13px;
+    gap: 8px;
+    font-family: system-ui, sans-serif;
   }
 
-  #msg-count { color: #58a6ff; font-size: 12px; }
+  .empty-state .icon { font-size: 32px; opacity: 0.4; }
 
-  .btn-clear {
+  .paused-banner {
+    background: #fbbf2415;
+    border-bottom: 1px solid #fbbf2430;
+    color: var(--yellow);
     font-size: 11px;
-    background: none;
-    border: 1px solid #30363d;
-    color: #8b949e;
-    padding: 2px 10px;
-    border-radius: 4px;
-    cursor: pointer;
+    font-weight: 600;
+    text-align: center;
+    padding: 4px;
+    letter-spacing: 0.05em;
+    display: none;
   }
-  .btn-clear:hover { border-color: #f85149; color: #f85149; }
+  .paused-banner.visible { display: block; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>ZMQ Broker Dashboard</h1>
+  <div class="header-logo">
+    <div class="header-logo-icon">⚡</div>
+    <h1>ZMQ <span>Broker</span></h1>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill">
+      <span>msgs</span>
+      <span class="val" id="total-count">0</span>
+    </div>
+    <div class="stat-pill">
+      <span class="val" id="rate-count">0</span>
+      <span class="unit">msg/s</span>
+    </div>
+    <div class="stat-pill">
+      <span class="val" id="publisher-count">0</span>
+      <span>publishers</span>
+    </div>
+    <div class="stat-pill">
+      <span class="val" id="topic-count">0</span>
+      <span>topics</span>
+    </div>
+  </div>
   <div id="status">
-    <div id="status-dot"></div>
-    <span id="status-text">Disconnected</span>
+    <div class="status-indicator">
+      <div id="status-dot"></div>
+      <span id="status-text">Disconnected</span>
+    </div>
   </div>
 </header>
 
 <div class="layout">
 
-  <!-- Left Sidebar -->
+  <!-- Sidebar -->
   <div class="sidebar">
 
-    <!-- Publishers panel -->
-    <div class="panel" style="max-height: 240px;">
+    <!-- Publishers -->
+    <div class="panel" style="max-height: 220px;">
       <div class="panel-header">
         Publishers
-        <button class="btn-small" onclick="refreshTopics()">Refresh</button>
+        <button class="btn-xs" onclick="refreshTopics()">↻ Refresh</button>
       </div>
       <div class="panel-body" id="publishers-list">
-        <div class="empty-state" style="padding: 16px; font-size: 12px;">No publishers</div>
+        <div class="empty-state" style="height:80px; font-size:11px;">No publishers</div>
       </div>
     </div>
 
-    <!-- Topics panel -->
-    <div class="panel" style="flex: 1;">
+    <!-- Topics -->
+    <div class="panel" style="flex:1;">
       <div class="panel-header">
         Topics
-        <div style="display:flex; gap:4px;">
-          <button class="btn-small" onclick="selectAll(true)">All</button>
-          <button class="btn-small" onclick="selectAll(false)">None</button>
+        <div style="display:flex;gap:4px;">
+          <button class="btn-xs" onclick="selectAll(true)">All</button>
+          <button class="btn-xs" onclick="selectAll(false)">None</button>
         </div>
       </div>
       <div class="panel-body" id="topics-list">
-        <div class="empty-state" style="padding: 16px; font-size: 12px;">No topics</div>
+        <div class="empty-state" style="height:80px; font-size:11px;">No topics</div>
       </div>
     </div>
 
   </div>
 
-  <!-- Main content -->
+  <!-- Main -->
   <div class="main">
 
     <!-- Publish bar -->
     <div class="publish-bar">
+      <span class="publish-label">Publish</span>
       <select id="publish-topic">
-        <option value="">-- select topic --</option>
+        <option value="">— select topic —</option>
       </select>
-      <input id="publish-msg" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter') publish()">
-      <button class="btn-publish" onclick="publish()">Publish</button>
+      <input id="publish-msg" type="text" placeholder="Message payload..." onkeydown="if(event.key==='Enter') publish()">
+      <button class="btn-publish" onclick="publish()">Send ↑</button>
     </div>
 
     <!-- Feed header -->
     <div class="feed-header">
-      <span>Live Messages &nbsp;<span id="msg-count">0</span></span>
-      <button class="btn-clear" onclick="clearFeed()">Clear</button>
+      <span class="feed-title">Live Feed</span>
+      <span id="msg-count">0</span>
+      <div class="feed-actions">
+        <button class="btn-pause" id="pause-btn" onclick="togglePause()">⏸ Pause</button>
+        <button class="btn-clear" onclick="clearFeed()">✕ Clear</button>
+      </div>
     </div>
 
-    <!-- Message feed -->
+    <div class="paused-banner" id="paused-banner">⏸ FEED PAUSED — <span id="buffered-count">0</span> messages buffered</div>
+
+    <!-- Feed -->
     <div id="feed">
-      <div class="empty-state" id="feed-empty">Waiting for messages...</div>
+      <div class="empty-state" id="feed-empty">
+        <div class="icon">⚡</div>
+        <div>Waiting for messages...</div>
+      </div>
     </div>
 
   </div>
 </div>
 
 <script>
+  // ── Topic color palette (deterministic from topic name) ──
+  const TOPIC_COLORS = [
+    { bg: '#7c6af720', border: '#7c6af7', text: '#a594ff' },
+    { bg: '#3b8eea20', border: '#3b8eea', text: '#6aadff' },
+    { bg: '#34d39920', border: '#34d399', text: '#5feba8' },
+    { bg: '#f8717120', border: '#f87171', text: '#ff9090' },
+    { bg: '#fbbf2420', border: '#fbbf24', text: '#fcd050' },
+    { bg: '#ec489920', border: '#ec4899', text: '#f472b6' },
+    { bg: '#06b6d420', border: '#06b6d4', text: '#22d3ee' },
+    { bg: '#84cc1620', border: '#84cc16', text: '#a3e635' },
+  ];
+
+  function topicColor(topicName) {
+    let hash = 0;
+    for (let i = 0; i < topicName.length; i++) hash = topicName.charCodeAt(i) + ((hash << 5) - hash);
+    return TOPIC_COLORS[Math.abs(hash) % TOPIC_COLORS.length];
+  }
+
+  // ── State ──
   let ws = null;
   let topics = [];
   let subscribedTopics = new Set();
   let topicsLoaded = false;
-  let msgCount = 0;
-  const MAX_MESSAGES = 200;
+  let totalCount = 0;
+  let paused = false;
+  let pauseBuffer = [];
 
+  // Rate counter
+  let rateWindow = [];
+  setInterval(() => {
+    const now = Date.now();
+    rateWindow = rateWindow.filter(t => now - t < 1000);
+    document.getElementById('rate-count').textContent = rateWindow.length;
+  }, 250);
+
+  // ── WebSocket ──
   function connect() {
     ws = new WebSocket(`ws://${location.host}/ws`);
-
-    ws.onopen = () => {
-      setStatus(true);
-      refreshTopics();
-      setInterval(refreshTopics, 10000);
-    };
-
-    ws.onclose = () => {
-      setStatus(false);
-      setTimeout(connect, 2000);
-    };
-
+    ws.onopen = () => { setStatus(true); refreshTopics(); setInterval(refreshTopics, 10000); };
+    ws.onclose = () => { setStatus(false); setTimeout(connect, 2000); };
     ws.onerror = () => ws.close();
-
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === 'topics') {
         updateTopics(msg.topics || []);
       } else if (msg.type === 'message') {
         if (!topicsLoaded || subscribedTopics.has(msg.topic)) {
-          addMessage(msg);
+          rateWindow.push(Date.now());
+          totalCount++;
+          document.getElementById('total-count').textContent = totalCount;
+          document.getElementById('msg-count').textContent = totalCount;
+          if (paused) {
+            pauseBuffer.push(msg);
+            document.getElementById('buffered-count').textContent = pauseBuffer.length;
+          } else {
+            appendMessage(msg);
+          }
         }
       }
     };
@@ -356,68 +674,86 @@
   }
 
   function refreshTopics() {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ action: 'get_topics' }));
-    }
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ action: 'get_topics' }));
   }
 
+  // ── Topics ──
   function updateTopics(newTopics) {
-    // Auto-subscribe any new topics that weren't in the previous list
     for (const t of newTopics) {
       if (!topics.includes(t)) subscribedTopics.add(t);
     }
     topics = newTopics;
     topicsLoaded = true;
 
-    // Update publishers panel
+    // Publishers panel
     const pubMap = {};
     for (const t of topics) {
       const [uuid, name] = t.split(':');
       if (!pubMap[uuid]) pubMap[uuid] = [];
       pubMap[uuid].push(name);
     }
-
     const pubList = document.getElementById('publishers-list');
-    if (Object.keys(pubMap).length === 0) {
-      pubList.innerHTML = '<div class="empty-state" style="padding:16px;font-size:12px;">No publishers</div>';
+    const pubCount = Object.keys(pubMap).length;
+    document.getElementById('publisher-count').textContent = pubCount;
+    document.getElementById('topic-count').textContent = topics.length;
+
+    if (pubCount === 0) {
+      pubList.innerHTML = '<div class="empty-state" style="height:60px;font-size:11px;">No publishers</div>';
     } else {
       pubList.innerHTML = Object.entries(pubMap).map(([uuid, names]) => `
-        <div class="publisher-entry">
-          <div class="publisher-id">${uuid.substring(0, 8)}…</div>
+        <div class="publisher-card">
+          <div class="publisher-card-header">
+            <div class="publisher-dot"></div>
+            <span class="publisher-id">${uuid.substring(0,8)}…</span>
+          </div>
           <div class="publisher-topics">
-            ${names.map(n => `<span class="topic-badge">${n}</span>`).join('')}
+            ${names.map(n => {
+              const c = topicColor(n);
+              return `<span class="topic-badge" style="background:${c.bg};border:1px solid ${c.border};color:${c.text}">${n}</span>`;
+            }).join('')}
           </div>
         </div>
       `).join('');
     }
 
-    // Update topics panel (preserve existing subscriptions)
+    // Topics panel
     const topicsList = document.getElementById('topics-list');
     if (topics.length === 0) {
-      topicsList.innerHTML = '<div class="empty-state" style="padding:16px;font-size:12px;">No topics</div>';
+      topicsList.innerHTML = '<div class="empty-state" style="height:60px;font-size:11px;">No topics</div>';
     } else {
-      topicsList.innerHTML = topics.map(t => `
-        <div class="topic-item">
-          <input type="checkbox" id="cb-${t}" value="${t}"
-            ${subscribedTopics.has(t) ? 'checked' : ''}
-            onchange="onTopicToggle(this)">
-          <label for="cb-${t}">${t.split(':')[1]} <span style="color:#6e7681;font-size:10px;">(${t.split(':')[0].substring(0,8)}…)</span></label>
-        </div>
-      `).join('');
-      // Sync subscribedTopics with checkboxes
+      topicsList.innerHTML = topics.map(t => {
+        const name = t.split(':')[1];
+        const uuid = t.split(':')[0];
+        const c = topicColor(name);
+        return `
+          <label class="topic-item" for="cb-${t}">
+            <div class="toggle">
+              <input type="checkbox" id="cb-${t}" value="${t}"
+                ${subscribedTopics.has(t) ? 'checked' : ''}
+                onchange="onTopicToggle(this)">
+              <span class="toggle-track"></span>
+            </div>
+            <div>
+              <div class="topic-label" style="color:${c.text}">${name}</div>
+              <div class="topic-label-sub">${uuid.substring(0,8)}…</div>
+            </div>
+          </label>`;
+      }).join('');
       syncSubscriptions();
     }
 
-    // Update publish topic dropdown
+    // Publish dropdown
     const sel = document.getElementById('publish-topic');
     const current = sel.value;
-    sel.innerHTML = '<option value="">-- select topic --</option>' +
-      topics.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${t.split(':')[1]} (${t.split(':')[0].substring(0,8)}…)</option>`).join('');
+    sel.innerHTML = '<option value="">— select topic —</option>' +
+      topics.map(t => {
+        const name = t.split(':')[1];
+        const uuid = t.split(':')[0];
+        return `<option value="${t}" ${t === current ? 'selected' : ''}>${name} (${uuid.substring(0,8)}…)</option>`;
+      }).join('');
   }
 
-  function onTopicToggle(cb) {
-    syncSubscriptions();
-  }
+  function onTopicToggle() { syncSubscriptions(); }
 
   function syncSubscriptions() {
     subscribedTopics.clear();
@@ -427,42 +763,65 @@
   }
 
   function selectAll(checked) {
-    document.querySelectorAll('#topics-list input[type=checkbox]').forEach(cb => {
-      cb.checked = checked;
-    });
+    document.querySelectorAll('#topics-list input[type=checkbox]').forEach(cb => { cb.checked = checked; });
     syncSubscriptions();
   }
 
-  function addMessage(msg) {
+  // ── Feed ──
+  function formatData(data) {
+    if (typeof data !== 'object') return `<span class="str">${data}</span>`;
+    return JSON.stringify(data).replace(
+      /"([^"]+)":\s*("([^"]*)"|-?\d+(\.\d+)?)/g,
+      (_, key, val, strVal) => {
+        if (strVal !== undefined) return `<span class="key">"${key}"</span>: <span class="str">${val}</span>`;
+        return `<span class="key">"${key}"</span>: <span class="num">${val}</span>`;
+      }
+    );
+  }
+
+  function appendMessage(msg) {
     const feed = document.getElementById('feed');
     const empty = document.getElementById('feed-empty');
     if (empty) empty.remove();
 
     const now = new Date();
     const time = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
-    const topicName = msg.topic.split(':')[1];
-    const dataStr = typeof msg.data === 'object' ? JSON.stringify(msg.data) : msg.data;
+    const name = msg.topic.split(':')[1];
+    const c = topicColor(name);
 
     const row = document.createElement('div');
     row.className = 'msg-row';
+    row.style.borderLeftColor = c.border;
     row.innerHTML = `
       <span class="msg-time">${time}</span>
-      <span class="msg-topic" title="${msg.topic}">${topicName}</span>
-      <span class="msg-data">${dataStr}</span>
-    `;
+      <span class="msg-topic" style="color:${c.text}" title="${msg.topic}">${name}</span>
+      <span class="msg-data">${formatData(msg.data)}</span>`;
     feed.appendChild(row);
 
-    // Limit messages
     const rows = feed.querySelectorAll('.msg-row');
-    if (rows.length > MAX_MESSAGES) rows[0].remove();
-
-    // Auto-scroll
+    if (rows.length > 500) rows[0].remove();
     feed.scrollTop = feed.scrollHeight;
-
-    msgCount++;
-    document.getElementById('msg-count').textContent = msgCount;
   }
 
+  // ── Pause / Resume ──
+  function togglePause() {
+    paused = !paused;
+    const btn = document.getElementById('pause-btn');
+    const banner = document.getElementById('paused-banner');
+    if (paused) {
+      btn.textContent = '▶ Resume';
+      btn.classList.add('paused');
+      banner.classList.add('visible');
+    } else {
+      btn.textContent = '⏸ Pause';
+      btn.classList.remove('paused');
+      banner.classList.remove('visible');
+      pauseBuffer.forEach(appendMessage);
+      pauseBuffer = [];
+    }
+  }
+
+  // ── Publish ──
   function publish() {
     const topic = document.getElementById('publish-topic').value;
     const message = document.getElementById('publish-msg').value.trim();
@@ -471,11 +830,10 @@
     document.getElementById('publish-msg').value = '';
   }
 
+  // ── Clear ──
   function clearFeed() {
-    const feed = document.getElementById('feed');
-    feed.innerHTML = '<div class="empty-state" id="feed-empty">Waiting for messages...</div>';
-    msgCount = 0;
-    document.getElementById('msg-count').textContent = '0';
+    document.getElementById('feed').innerHTML =
+      '<div class="empty-state" id="feed-empty"><div class="icon">⚡</div><div>Waiting for messages...</div></div>';
   }
 
   connect();
